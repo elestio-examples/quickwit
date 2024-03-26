@@ -113,7 +113,7 @@ services:
     image: grafana/grafana-oss:9.4.7
     restart: always
     ports:
-      - 172.17.0.1:28700:3000"
+      - "172.17.0.1:28700:3000"
     profiles:
       - grafana
       - monitoring

@@ -31,6 +31,8 @@ environments:
     value: "random_password"
   - key: "POSTGRES_DB"
     value: "quickwit"
+  - key: "SMTP_FROM_EMAIL"
+    value: "[DOMAIN]@vm.elestio.app"
 
 config:
   runTime: "dockerCompose"
