@@ -79,3 +79,9 @@ To perform clean-up tasks like deleting the index, use the following command:
 # Documentation
 
 For comprehensive documentation and getting started guides, please visit the Quickwit documentation page: <a target="_blank" href="https://quickwit.io/docs/get-started/quickstart">Quickwit Documentation</a>
+
+# API Playground
+
+Explore and interact with Quickwit's API endpoints using the API Playground:
+
+https://[CI_CD_DOMAIN]/ui/api-playground
