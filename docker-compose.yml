@@ -1,0 +1,186 @@
+version: "3.9"
+
+services:
+  localstack:
+    image: localstack/localstack:2.3.2
+    restart: always
+    ports:
+      - "172.17.0.1:4566:4566"
+      - "172.17.0.1:4571:4571"
+      - "172.17.0.1:8080:8080"
+    profiles:
+      - all
+      - localstack
+    environment:
+      SERVICES: kinesis,s3
+      PERSISTENCE: 1
+    volumes:
+      - ./.localstack:/etc/localstack/init/ready.d
+      - ./localstack_data:/var/lib/localstack
+
+  postgres:
+    image: elestio/postgres:12
+    restart: always
+    ports:
+      - "172.17.0.1:18625:5432"
+    profiles:
+      - all
+      - postgres
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  pulsar-broker:
+    image: apachepulsar/pulsar:3.0.0
+    restart: always
+    command: bin/pulsar standalone
+    ports:
+      - "172.17.0.1:6650:6650"
+      - "172.17.0.1:8081:8080"
+    environment:
+      PULSAR_MEM: "-Xms256M -Xmx256M"
+    profiles:
+      - all
+      - pulsar
+
+  kafka-broker:
+    image: confluentinc/cp-kafka:7.0.9
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "172.17.0.1:9092:9092"
+      - "172.17.0.1:9101:9101"
+      - "172.17.0.1:29092:29092"
+    profiles:
+      - all
+      - kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092,PLAINTEXT://kafka-broker:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_HEAP_OPTS: -Xms256M -Xmx256M
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.9
+    restart: always
+    ports:
+      - "172.17.0.1:2181:2181"
+    profiles:
+      - all
+      - kafka
+    environment:
+      KAFKA_HEAP_OPTS: -Xms256M -Xmx256M
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.24.0
+    restart: always
+    ports:
+      - "172.17.0.1:10000:10000" # Blob store port
+    profiles:
+      - all
+      - azurite
+    volumes:
+      - ./azurite_data:/data
+    command: azurite --blobHost 0.0.0.0 --loose
+
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server:1.47.7
+    restart: always
+    ports:
+      - "172.17.0.1:4443:4443" # Blob store port
+    profiles:
+      - all
+      - fake-gcs-server
+    volumes:
+      - ./fake_gcs_server_data:/data/sample-bucket
+    command: -scheme http
+
+  grafana:
+    image: grafana/grafana-oss:9.4.7
+    restart: always
+    ports:
+      - 172.17.0.1:28700:3000"
+    profiles:
+      - grafana
+      - monitoring
+    environment:
+      # GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      # GF_AUTH_ANONYMOUS_ENABLED: "true"
+      # GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_DEFAULT_INSTANCE_NAME=${DOMAIN}:33225
+      - GF_SECURITY_ADMIN_USER=root
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=172.17.0.1:25
+      - GF_SMTP_FROM_ADDRESS=${SMTP_FROM_EMAIL}
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.48.0
+    restart: always
+    ports:
+      - "172.17.0.1:16686:16686" # Frontend
+    profiles:
+      - jaeger
+      - monitoring
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.84.0
+    restart: always
+    ports:
+      - "172.17.0.1:1888:1888" # pprof extension
+      - "172.17.0.1:8888:8888" # Prometheus metrics exposed by the collector
+      - "172.17.0.1:8889:8889" # Prometheus exporter metrics
+      - "172.17.0.1:13133:13133" # health_check extension
+      - "172.17.0.1:4317:4317" # OTLP gRPC receiver
+      - "172.17.0.1:4318:4318" # OTLP http receiver
+      - "172.17.0.1:55679:55679" # zpages extension
+    profiles:
+      - otel
+      - monitoring
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    command: ["--config=/etc/otel-collector-config.yaml"]
+
+  prometheus:
+    image: prom/prometheus:v2.43.0
+    restart: always
+    ports:
+      - "172.17.0.1:9090:9090"
+    profiles:
+      - prometheus
+      - monitoring
+    volumes:
+      - ./monitoring/prometheus.yaml:/etc/prometheus/prometheus.yml
+
+  gcp-pubsub-emulator:
+    # It is not an official docker image
+    # if we prefer we can build a docker from the official docker image (gcloud cli)
+    # and install the pubsub emulator https://cloud.google.com/pubsub/docs/emulator
+    image: thekevjames/gcloud-pubsub-emulator:455.0.0
+    restart: always
+    ports:
+      - "172.17.0.1:8681:8681"
+    environment:
+      # create a fake gcp project and a topic / subscription
+      - PUBSUB_PROJECT1=quickwit-emulator,emulator_topic:emulator_subscription
+    profiles:
+      - all
+      - gcp-pubsub
