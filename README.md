@@ -75,3 +75,7 @@ You can perform queries on the indexed data. Here are a few examples:
 To perform clean-up tasks like deleting the index, use the following command:
 
     curl root:[ADMIN_PASSWORD] -XDELETE https://[CI_CD_DOMAIN]/api/v1/indexes/stackoverflow
+
+# Documentation
+
+For comprehensive documentation and getting started guides, please visit the Quickwit documentation page: <a target="_blank" href="https://quickwit.io/docs/get-started/quickstart">Quickwit Documentation</a>
