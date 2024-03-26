@@ -13,11 +13,5 @@ Deploy Quickwit server with CI/CD on Elestio
 You can open Quickwit UI here:
 
     URL: https://[CI_CD_DOMAIN]
-    login: "[ADMIN_EMAIL]"
-    password: "[ADMIN_PASSWORD]"
-
-You can open phpMyAdmin here:
-
-    URL: https://[CI_CD_DOMAIN]:52440
     login: "root"
     password: "[ADMIN_PASSWORD]"

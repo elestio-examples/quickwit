@@ -6,33 +6,16 @@ ports:
     targetIP: "172.17.0.1"
     public: true
     path: "/"
-    isAuth: false
-  - protocol: "HTTPS"
-    targetProtocol: "HTTP"
-    listeningPort: "33225"
-    targetPort: "28700"
-    targetIP: "172.17.0.1"
-    public: true
-    path: "/"
-    isAuth: false
+    isAuth: true
+    login: "root"
+    password: "random_password"
+    loginTitle: "Quickwit"
 
 environments:
   - key: "SOFTWARE_VERSION_TAG"
     value: "latest"
-  - key: "ADMIN_EMAIL"
-    value: "[EMAIL]"
   - key: "ADMIN_PASSWORD"
     value: "random_password"
-  - key: "DOMAIN"
-    value: "[CI_CD_DOMAIN]"
-  - key: "POSTGRES_USER"
-    value: "postgres"
-  - key: "POSTGRES_PASSWORD"
-    value: "random_password"
-  - key: "POSTGRES_DB"
-    value: "quickwit"
-  - key: "SMTP_FROM_EMAIL"
-    value: "[DOMAIN]@vm.elestio.app"
 
 config:
   runTime: "dockerCompose"
@@ -51,12 +34,3 @@ lifeCycleConfig:
   preRestoreCommand: "./scripts/preRestore.sh"
   postRestoreCommand: "./scripts/postRestore.sh"
   postDeployCommand: "./scripts/postDeploy.sh"
-webUI:
-  - url: "https://[CI_CD_DOMAIN]"
-    label: "Quickwit"
-    login: "[ADMIN_EMAIL]"
-    password: "[ADMIN_PASSWORD]"
-  - url: "https://[CI_CD_DOMAIN]:33225"
-    label: "Grafana"
-    login: "root"
-    password: "[ADMIN_PASSWORD]"
